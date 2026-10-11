@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="fil">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Kamusta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=Figtree:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+
+  <!-- HOME -->
+  <section class="screen home" id="home">
+    <span class="privacy">Anonymous</span>
+    <button class="sun" id="sunBtn" aria-label="Kamusta, pindutin para magsimula">Kamusta</button>
+  </section>
+
+  <!-- CHECK-IN -->
+  <section class="screen" id="checkin" hidden>
+    <h2>Kamusta ka na talaga?</h2>
+
+    <textarea id="msg" aria-label="Isulat ang nararamdaman mo" maxlength="700" placeholder="your message is anonymous."></textarea>
+    <button class="btn" id="showBtn" disabled>Click moto after ng message mo</button>
+    <button class="link" id="backHome">back</button>
+  </section>
+
+  <!-- RESULT -->
+  <section class="screen" id="result" hidden style="margin-top:0">
+    <div id="careBox"></div>
+    <div class="verse">
+      <blockquote id="vText"></blockquote>
+      <cite id="vRef"></cite>
+      <div class="para"><b>Sa madaling salita:</b> <span id="vPara"></span></div>
+    </div>
+    <a class="song" id="songCard" target="_blank" rel="noopener">
+      <h3 id="songTitle"></h3>
+      <p class="by">Liveloud</p>
+    </a>
+    <button class="link" id="backResult">back</button>
+  </section>
+
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+var $ = function(s){return document.querySelector(s)};
+
+/* ENGINE START */
+var pick = function(a){return a[Math.floor(Math.random()*a.length)]};
+
+/* Bawat verse: [KJV text, reference, "Sa madaling salita"] */
+var V = {
+ 'pagod':[
+  ['Come unto me, all ye that labour and are heavy laden, and I will give you rest.','Matthew 11:28','Kung pagod ka na, puwede kang magpahinga. Hindi mo kailangang buhatin ito mag-isa.'],
+  ['But they that wait upon the LORD shall renew their strength; they shall mount up with wings as eagles; they shall run, and not be weary; and they shall walk, and not faint.','Isaiah 40:31','Ang nagpapahinga at nagtitiwala sa Diyos ay muling lalakas.'],
+  ['Cast thy burden upon the LORD, and he shall sustain thee: he shall never suffer the righteous to be moved.','Psalm 55:22','Ibigay mo sa Kanya ang bigat mo. Aalalayan ka Niya.'],
+  ['And let us not be weary in well doing: for in due season we shall reap, if we faint not.','Galatians 6:9','Hindi nasasayang ang pagod mo. May panahon ng ani.']
+ ],
+ 'malungkot':[
+  ['The LORD is nigh unto them that are of a broken heart; and saveth such as be of a contrite spirit.','Psalm 34:18','Malapit ang Diyos sa mga durog ang puso.'],
+  ['He healeth the broken in heart, and bindeth up their wounds.','Psalm 147:3','Ginagamot Niya ang sugat ng puso mo.'],
+  ['…weeping may endure for a night, but joy cometh in the morning.','Psalm 30:5','Hindi habambuhay ang gabi ng iyak. May umaga.'],
+  ['And God shall wipe away all tears from their eyes…','Revelation 21:4','Darating ang panahon na papahiran Niya ang bawat luha.']
+ ],
+ 'kabado':[
+  ['Be careful for nothing; but in every thing by prayer and supplication with thanksgiving let your requests be made known unto God. And the peace of God, which passeth all understanding, shall keep your hearts and minds through Christ Jesus.','Philippians 4:6-7','Ilapit mo sa Diyos ang bawat alalahanin, at bibigyan ka Niya ng kapayapaang hindi mo maipaliwanag.'],
+  ['Casting all your care upon him; for he careth for you.','1 Peter 5:7','Ipasa mo sa Kanya ang pag-aalala mo. Mahalaga ka sa Kanya.'],
+  ['Fear thou not; for I am with thee: be not dismayed; for I am thy God: I will strengthen thee; yea, I will help thee…','Isaiah 41:10','Huwag kang matakot. Kasama mo Siya at aalalayan ka.'],
+  ['Peace I leave with you, my peace I give unto you: not as the world giveth, give I unto you. Let not your heart be troubled, neither let it be afraid.','John 14:27','Iba ang kapayapaang binibigay Niya. Hindi kailangang mabagabag ang puso mo.'],
+  ['Have not I commanded thee? Be strong and of a good courage; be not afraid, neither be thou dismayed: for the LORD thy God is with thee whithersoever thou goest.','Joshua 1:9','Lakasan mo ang loob mo. Kasama mo Siya saan ka man pumunta.']
+ ],
+ 'mag-isa':[
+  ['So we, being many, are one body in Christ, and every one members one of another.','Romans 12:5','Iisang katawan tayo. Parte ka nito, at kailangan ka namin.'],
+  ['Two are better than one; because they have a good reward for their labour. For if they fall, the one will lift up his fellow: but woe to him that is alone when he falleth; for he hath not another to help him up.','Ecclesiastes 4:9-10','Mas mabuti ang dalawa kaysa isa. Kapag nadapa ka, may magbabangon sa iyo.'],
+  ['Bear ye one another\u2019s burdens, and so fulfil the law of Christ.','Galatians 6:2','Magdamayan tayo sa bigat ng isa\u2019t isa.'],
+  ['God setteth the solitary in families…','Psalm 68:6','Inilalagay ng Diyos ang nag-iisa sa isang pamilya.']
+ ],
+ 'pag-asa':[
+  ['For I know the thoughts that I think toward you, saith the LORD, thoughts of peace, and not of evil, to give you an expected end.','Jeremiah 29:11','May plano Siyang mabuti para sa iyo, may kinabukasan at pag-asa.'],
+  ['It is of the LORD\u2019S mercies that we are not consumed, because his compassions fail not. They are new every morning: great is thy faithfulness.','Lamentations 3:22-23','Bago ang awa Niya tuwing umaga. Panibagong simula ngayon.'],
+  ['Now the God of hope fill you with all joy and peace in believing, that ye may abound in hope, through the power of the Holy Ghost.','Romans 15:13','Nawa mapuno ka ng pag-asa, kagalakan, at kapayapaan.'],
+  ['God is our refuge and strength, a very present help in trouble.','Psalm 46:1','Kanlungan at lakas natin Siya, laging handang tumulong.']
+ ],
+ 'okay':[
+  ['This is the day which the LORD hath made; we will rejoice and be glad in it.','Psalm 118:24','Ito ang araw na ginawa ng Diyos. Magalak tayo.'],
+  ['The LORD bless thee, and keep thee: The LORD make his face shine upon thee, and be gracious unto thee.','Numbers 6:24-25','Pagpalain at ingatan ka nawa Niya.'],
+  ['Wherefore comfort yourselves together, and edify one another, even as also ye do.','1 Thessalonians 5:11','Magpalakas tayo ng loob sa isa\u2019t isa.'],
+  ['And let us consider one another to provoke unto love and to good works:','Hebrews 10:24','Bantayan natin ang isa\u2019t isa sa pagmamahal at paggawa ng mabuti.']
+ ]
+};
+
+function byRef(ref){
+  for(var k in V){ for(var i=0;i<V[k].length;i++){ if(V[k][i][1]===ref) return V[k][i]; } }
+  return null;
+}
+
+/* Pangkalahatan: ginagamit kapag walang malinaw na tugma sa isinulat nila */
+V.general = ['Psalm 34:18','Matthew 11:28','Isaiah 41:10','Romans 12:5','Psalm 46:1','1 Peter 5:7'].map(byRef);
+
+
+/* ===== Dagdag na mga tema at verse ===== */
+V['pagsisisi'] = [
+  ['If we confess our sins, he is faithful and just to forgive us our sins, and to cleanse us from all unrighteousness.','1 John 1:9','Kung aaminin natin ang pagkakamali natin, tapat Siyang magpapatawad at maglilinis sa atin.'],
+  ['As far as the east is from the west, so far hath he removed our transgressions from us.','Psalm 103:12','Kasing layo ng silangan sa kanluran ang pag-alis Niya ng mga pagkakamali natin.'],
+  ['There is therefore now no condemnation to them which are in Christ Jesus, who walk not after the flesh, but after the Spirit.','Romans 8:1','Wala nang hatol para sa mga nasa Kay Cristo.'],
+  ['Create in me a clean heart, O God; and renew a right spirit within me.','Psalm 51:10','Bigyan Mo ako ng malinis na puso at panibagong espiritu.']
+];
+V['galit'] = [
+  ['Be ye angry, and sin not: let not the sun go down upon your wrath:','Ephesians 4:26','Pwedeng magalit, pero huwag mong dalhin ang galit hanggang gabi.'],
+  ['A soft answer turneth away wrath: but grievous words stir up anger.','Proverbs 15:1','Ang mahinahong sagot ay nagpapahupa ng galit.'],
+  ['Wherefore, my beloved brethren, let every man be swift to hear, slow to speak, slow to wrath:','James 1:19','Bilisan ang pakikinig, bagalan ang pagsasalita at pagagalit.'],
+  ['Forbearing one another, and forgiving one another, if any man have a quarrel against any: even as Christ forgave you, so also do ye.','Colossians 3:13','Magtiis sa isa\u2019t isa at magpatawad, gaya ng pagpapatawad sa atin.'],
+  ['If it be possible, as much as lieth in you, live peaceably with all men.','Romans 12:18','Hangga\u2019t kaya mo, makipagpayapaan sa lahat.']
+];
+V['pera'] = [
+  ['But my God shall supply all your need according to his riches in glory by Christ Jesus.','Philippians 4:19','Susuplayan ng Diyos ang lahat ng kailangan mo.'],
+  ['Behold the fowls of the air: for they sow not, neither do they reap, nor gather into barns; yet your heavenly Father feedeth them. Are ye not much better than they?','Matthew 6:26','Kung inaalagaan Niya ang mga ibon, mas lalo ka.'],
+  ['But seek ye first the kingdom of God, and his righteousness; and all these things shall be added unto you.','Matthew 6:33','Unahin ang Diyos, at idaragdag Niya ang kailangan mo.']
+];
+V['pagluluksa'] = [
+  ['Blessed are they that mourn: for they shall be comforted.','Matthew 5:4','Aaliwin ang mga nagluluksa.'],
+  ['Jesus said unto her, I am the resurrection, and the life: he that believeth in me, though he were dead, yet shall he live:','John 11:25','Si Jesus ang muling pagkabuhay at ang buhay.'],
+  ['But I would not have you to be ignorant, brethren, concerning them which are asleep, that ye sorrow not, even as others which have no hope.','1 Thessalonians 4:13','Hindi tayo nagdadalamhati na parang walang pag-asa.'],
+  byRef('Psalm 34:18'),
+  byRef('Revelation 21:4')
+];
+V['may-sakit'] = [
+  ['And he said unto me, My grace is sufficient for thee: for my strength is made perfect in weakness.','2 Corinthians 12:9','Sapat ang biyaya Niya. Sa kahinaan mo nagiging buo ang lakas Niya.'],
+  byRef('Isaiah 41:10'),
+  byRef('Psalm 147:3'),
+  byRef('Psalm 46:1')
+];
+V['pagkabigo'] = [
+  ['For a just man falleth seven times, and riseth up again:','Proverbs 24:16','Kahit makailang beses madapa, nakakabangon pa rin.'],
+  ['Though he fall, he shall not be utterly cast down: for the LORD upholdeth him with his hand.','Psalm 37:24','Kahit madapa ka, hindi ka tuluyang babagsak. Inaalalayan ka Niya.'],
+  ['I can do all things through Christ which strengtheneth me.','Philippians 4:13','Kaya mo ang lahat sa tulong ng nagpapalakas sa iyo.'],
+  ['And we know that all things work together for good to them that love God, to them who are the called according to his purpose.','Romans 8:28','Kahit ang mahihirap na bagay ay may mabuting patutunguhan.']
+];
+
+V['pagbabalik'] = [
+  ['And he arose, and came to his father. But when he was yet a great way off, his father saw him, and had compassion, and ran, and fell on his neck, and kissed him.','Luke 15:20','Habang malayo pa ang anak, nakita na siya ng ama. Tumakbo ito at niyakap siya.'],
+  ['Behold, how good and how pleasant it is for brethren to dwell together in unity!','Psalm 133:1','Napakabuti at napakasarap kapag sama-sama ang magkakapatid.'],
+  byRef('Romans 12:5'),
+  byRef('1 Thessalonians 5:11')
+];
+
+/* ===== Mga salita/parirala na hahanapin =====
+   s = malakas na palatandaan (4 puntos), w = karaniwang palatandaan (2 puntos).
+   Nakasulat na sa "normalized" na anyo: maliliit na letra, walang gitling o bantas.
+   May espasyo sa gilid ang maiikling salita para hindi magkamali (hal. " kaba "). */
+var KEYS = {
+ 'pagod':{
+  s:['pagod na pagod','sobrang pagod','burnout','burn out','burned out','ubos na ubos','hindi ko na kaya','di ko na kaya','hindi na kaya','di na kaya','walang pahinga','hirap na hirap'],
+  w:['nahihirapan','pagod','napapagod','nakakapagod','tired','drained','exhaust','ubos','overwork','hirap na ako','stress','stressed']
+ },
+ 'malungkot':{
+  s:['sobrang lungkot','heartbroken','broken hearted','sakit sa puso','nasasaktan ako','umiiyak ako','naiiyak ako','iyak ako ng iyak','nag break kami','nakipag break','hiniwalayan','niloko ako','sinaktan ako','nasaktan ako','heartbreak','break up','breakup'],
+  w:['malungkot','lungkot',' sad ','sadness','iyak','umiyak','naiiyak','masakit','nasaktan','broken','hiwalay','mahal ko pa rin','hindi ko siya makalimutan','di ko siya makalimutan','move on','depress','down ako','ang bigat','mabigat ang loob','mabigat ang pakiramdam','iniwan','niloko','walang laman',' empty ']
+ },
+ 'kabado':{
+  s:['sobrang kaba','di mapakali','hindi mapakali','overthink','nao overthink','panic attack','anxiety','anxious','natatakot ako','takot ako','kinakabahan ako'],
+  w:[' kaba ','kabado','takot','natatakot','worry','worried','nag aalala','nagaalala','alala','panic','stress','stressed','pressure','problema','di makatulog','hindi makatulog','kinakabahan','nerbyos','nervous']
+ },
+ 'mag-isa':{
+  s:['walang kaibigan','wala akong kaibigan','walang kasama','wala akong kasama','walang nakakaintindi','walang nakakaalam','hindi ako belong','di ako belong','left out','walang pakialam','walang nakakamiss','mag isa lang ako','nag iisa ako','mag isa ako','wala akong makausap','walang makausap','walang kausap','gusto ko ng kausap','gusto ko lang ng kausap','kailangan ko ng kausap','kailangan ko ng makakausap','walang nagmamahal','walang may gusto sa akin','di ako mahal','hindi ako mahal','walang nakakaalala'],
+  w:['mag isa','magisa','nag iisa','nagiisa','lonely','loneliness','alone','outcast','nakalimutan','forgotten','invisible','iniwan','ghosted','hindi ako kasama','di ako kasama','hindi ako inaya','di ako inaya']
+ },
+ 'pag-asa':{
+  s:['walang pag asa','walang pagasa','walang direksyon','wala akong direksyon','walang patutunguhan','wala akong silbi','wala akong kwenta','wala akong halaga','walang halaga','walang kwenta ang buhay','walang kwenta ako','walang silbi ako','hopeless','sumuko na','suko na','give up','gave up','pointless','ayoko na ','ayaw ko na ','ayoko nang ','ayaw ko nang ','wala nang saysay','wala na akong pag asa'],
+  w:['direksyon','pag asa','pagasa','suko','sumuko',' lost ','useless','walang kwenta','walang silbi','nawawala ako','nawawalan','hindi ko na kaya','di ko na kaya']
+ },
+ 'pagsisisi':{
+  s:['pinagsisisihan','nagsisisi','sinisisi ko ang sarili','kasalanan ko','nagkasala','nagkamali ako','nakonsensya','konsensya','guilty','guilt','nahihiya ako','hiyang hiya','regret'],
+  w:['sisi','nahihiya','nagkamali','kasalanan','nakasakit ako','nasaktan ko','sorry','patawad','pasensya na','shame','ashamed']
+ },
+ 'galit':{
+  s:['sobrang galit','galit na galit','galit ako','naiinis ako','nakakainis','badtrip','bad trip','gigil na gigil','sumasabog','nanggigigil','naiinis','inis na inis','nakakagalit','pikon'],
+  w:['galit','inis',' mad ','angry','anger','furious','irita','nakakairita',' away ','nag away','nag aaway','nagaway','nagaaway','inaaway','nakipag away','nagkaaway','tampo','traydor','tinraydor','pinagtaksilan','taksil','betray','bully','sinisiraan','kinaiinisan']
+ },
+ 'pera':{
+  s:['walang pera','walang trabaho','nawalan ng trabaho','natanggal sa trabaho','tinanggal sa trabaho','natanggal ako','tinanggal ako sa trabaho','nawalan ako ng trabaho','walang income','walang kita','kapos','hirap sa buhay','walang pambayad','laid off','jobless','financial','mga bayarin','utang','walang makain'],
+  w:[' pera ',' bills ',' bill ','sweldo','tuition','pambayad',' renta ',' upa ','kuryente','pamasahe']
+ },
+ 'pagluluksa':{
+  s:['namatay','pumanaw','binawian ng buhay','burol','libing','nagluluksa','pagluluksa','namayapa','yumao','wala na si','wala na siya',' died ','passed away','funeral','grief','grieving','nawalan ako ng ina','nawalan ako ng ama','nawalan ako ng mahal'],
+  w:[' patay ','mourning','lamay','kamatayan']
+ },
+ 'may-sakit':{
+  s:['may sakit ako','may sakit si','may sakit ang','may cancer',' cancer','ospital','hospital','na confine',' confined','chemo','operasyon','nagkasakit','sakit ng nanay','sakit ng tatay','sakit ng ama','sakit ng ina','diagnosed','diagnosis','dialysis',' stroke'],
+  w:[' sick ','nagpapagaling','pagpapagaling','gamot','doktor','doctor','lagnat','masama ang pakiramdam','masama pakiramdam']
+ },
+ 'pagkabigo':{
+  s:['bagsak ako','bumagsak','hindi ako pumasa','di ako pumasa','hindi ako nakapasa','di ako nakapasa','failed','nag fail','na reject','rejected','hindi ako natanggap','di ako natanggap','tinanggihan ako','natalo','talo ako','hindi ako nanalo','di ako nanalo','dropped out','board exam'],
+  w:['bagsak',' fail ','failure','reject','sablay','palpak','di ako sapat','hindi ako sapat','di ako magaling','hindi ako magaling']
+ },
+
+ 'pagbabalik':{
+  s:['namiss ko kayo','miss ko kayo','miss ko na kayo','namiss ko na kayo','miss na kita','namiss ko kayong lahat','balik na ako','bumalik na ako','nakabalik','matagal akong nawala','matagal na akong wala','nawala ako ng matagal','matagal na akong hindi','sorry nawala ako','sorry sa pagkawala','pasensya sa pagkawala','pasensya na nawala','na miss ko kayo'],
+  w:['bumalik','balik ako','nawala ako','pagkawala ko','matagal na akong']
+ },
+ 'okay':{
+  s:['masaya ako','okay ako','ok ako','okay lang ako','ok lang ako','okay naman ako','blessed ako','thankful ako','grateful ako','masaya na ako','happy ako','i am happy','im happy','i am okay','im okay'],
+  w:['masaya','happy','excited','nae excite','blessed','thankful','grateful','salamat','maayos',' okay lang',' ok lang','okay naman','good naman','mabuti naman','nagpapasalamat','thank you','thanks','gaan ng pakiramdam','magaan ang pakiramdam']
+ }
+};
+
+/* Kapag magkatabla ang puntos, uunahin ang mas mabigat o mas sensitibong tema. */
+var PRIORITY = ['pag-asa','pagluluksa','malungkot','mag-isa','kabado','pagod','pagsisisi','may-sakit','pagkabigo','pera','galit','pagbabalik','okay'];
+
+/* "hindi ako okay", "not okay", "di na ako masaya" = hindi talaga okay */
+var NOT_OKAY = /\b(hindi|di|ndi|hnd|not)\s+(na\s+)?(naman\s+)?(ako\s+)?(po\s+)?(okay|ok|masaya|happy|maayos|good|fine)\b/;
+
+/* "hindi ako pagod", "di ako malungkot" = hindi bibilangin ang salita */
+var NEG = /\b(hindi|di|ndi|hnd|not|never)\s+(na\s+)?(naman\s+)?(ako\s+)?(po\s+)?$/;
+
+/* Mga pahiwatig ng pananakit sa sarili. Susuriin ang normalized na text. */
+var CRISIS = new RegExp([
+  'magpakamatay','magpatiwakal','patayin ko (na )?(ang )?sarili','tapusin (ko )?(na )?(ang )?buhay',
+  '(gusto|sana|wish|want|wanna)\\b[^.]{0,25}\\b(mamatay|di na magising|hindi na magising)',
+  '(gusto|sana)\\b[^.]{0,20}mawala (na )?(lang )?(ako|sa mundo)',
+  'ayoko (na |nang )?mabuhay','ayaw ko (na |nang )?mabuhay','ayokong mabuhay','ayaw kong mabuhay',
+  '(wala|walang) (na |nang )?(saysay|silbi|kwenta)( ang| na)? (buhay|mabuhay)',
+  'pagod na (ako |akong )?mabuhay','ayoko (na )?(sa )?buhay','ayaw ko (na )?(sa )?buhay',
+  'tired of living','dont want to live','don.t want to live','dont wanna live','end it all','no reason to live',
+  '(wala|walang) (na )?(akong )?(rason|dahilan) (para )?mabuhay','nag cut ako','hinihiwa ko','naghihiwa ako','overdose',
+  'suicid','kill myself','end my life','want to die','wanna die','better off dead','better off without me',
+  'saktan (ko )?(na )?(ang )?sarili','self ?harm','hurt myself','cut myself',
+  '(sana )?(hindi|di) (na )?sana ako ipinanganak','sana (hindi|di) (na )?lang ako ipinanganak'
+].join('|'));
+
+/* ===== Engine ===== */
+function norm(s){
+  s=String(s).toLowerCase();
+  try{ s=s.normalize('NFD').replace(/[\u0300-\u036f]/g,''); }catch(e){}
+  s=s.replace(/[\u2018\u2019`]/g,"'");
+  s=s.replace(/(.)\1{2,}/g,'$1');      /* pagoooood -> pagod */
+  s=s.replace(/[-_\/]+/g,' ');
+  s=s.replace(/[^a-z' ]+/g,' ');
+  s=s.replace(/\s+/g,' ');
+  return ' '+s.trim()+' ';
+}
+
+function scoreTheme(t,def){
+  var total=0, seen={};
+  [[def.s||[],4],[def.w||[],2]].forEach(function(g){
+    g[0].forEach(function(k){
+      var from=0, idx;
+      while((idx=t.indexOf(k,from))>-1){
+        var start=idx+(k.charAt(0)===' '?1:0);
+        while(start>0 && t.charAt(start-1)!==' '){ start--; }   /* simula ng buong salita */
+        var before=t.slice(Math.max(0,start-18),start);
+        if(!NEG.test(before)){ if(!seen[k]){ total+=g[1]; seen[k]=1; } break; }
+        from=idx+k.length;
+      }
+    });
+  });
+  return total;
+}
+
+/* Ibabalik ang pinakabagay na tema, o null kung walang malinaw na tugma */
+function detect(text){
+  var t=norm(text), score={}, best=null, bestN=0;
+  Object.keys(KEYS).forEach(function(k){ score[k]=scoreTheme(t,KEYS[k]); });
+  if(NOT_OKAY.test(t)){ score.okay=0; score.malungkot+=3; }
+  PRIORITY.forEach(function(k){ if((score[k]||0)>bestN){ bestN=score[k]; best=k; } });
+  return best;
+}
+
+function isCrisis(text){ return CRISIS.test(norm(text)); }
+
+function choose(text){
+  if(isCrisis(text)) return {theme:'malungkot', verse:byRef('Psalm 34:18'), crisis:true};
+  var theme=detect(text)||'general';
+  return {theme:theme, verse:pick(V[theme]), crisis:false};
+}
+
+/* ENGINE END */
+
+function go(id){
+  ['home','checkin','result'].forEach(function(s){ $('#'+s).hidden = (s!==id); });
+  window.scrollTo(0,0);
+}
+
+function showVerse(v){
+  $('#vText').textContent='\u201C'+v[0]+'\u201D';
+  $('#vRef').textContent=v[1]+' (KJV)';
+  $('#vPara').textContent=v[2];
+}
+
+/* Mga kantang Liveloud para sa bawat tema (mula sa listahan ng songs ng Liveloud) */
+var SONGS = {
+ "pagod":["Take Me","God Is Enough","I Am Blessed","Hallelujah","Father"],
+ "malungkot":["In Your Arms","Grateful","I Give My All","Our God"],
+ "kabado":["They Won't Come Near","Your Servant","Live For You","Faithful God","Father","Yours","Our God He Reigns"],
+ "mag-isa":["One","Your Spirit Is Strong","Live For You","You Have Chosen Me","Sing","Home"],
+ "pag-asa":["Fearless","Nothing's Impossible","Your Everything","Nothing Can Stop","In Your Arms","Gracious God","Pour And Flow","Our God He Reigns"],
+ "pagsisisi":["Gracious God","Embrace","More Of You","Hallelujah","Beloved","One"],
+ "galit":["I Am Blessed","God Is Enough","Take Me"],
+ "pera":["I Know","God Is Enough","Faithful God","Praiseworthy"],
+ "pagluluksa":["Heaven","Our God","Take Me","Nothing Can Stop"],
+ "may-sakit":["Our God","Embrace","No One Like You","In Your Arms"],
+ "pagkabigo":["Shout","Nothing's Impossible","Have Your Way","Trailblazing","More Of You"],
+ "pagbabalik":["Home","Truly Home","With You","You Have Chosen Me","One"],
+ "okay":["Praiseworthy","Grateful","Shout","Hallelujah","Incredible","I Know","Freedom","King (His Love)","Larger Than Life","Ablaze","Trailblazing","Our God He Reigns","Sing"],
+ "general":["I Am Blessed","God Is Enough","Grateful","Take Me","Incredible"]
+};
+
+function showSong(theme){
+  var title=pick(SONGS[theme]||SONGS.general);
+  $('#songTitle').textContent=title;
+  $('#songCard').href='https://www.youtube.com/results?search_query='+encodeURIComponent('Liveloud '+title+' worship');
+}
+
+$('#sunBtn').onclick=function(){ go('checkin'); };
+$('#backHome').onclick=function(){ go('home'); };
+$('#backResult').onclick=function(){ $('#msg').value=''; $('#showBtn').disabled=true; go('home'); };
+
+/* hindi pwedeng i-click hangga't walang naisusulat */
+$('#msg').addEventListener('input',function(){
+  $('#showBtn').disabled = !this.value.trim();
+});
+
+$('#showBtn').onclick=function(){
+  var text=($('#msg').value||'').trim();
+  if(!text) return;
+  var r=choose(text);
+  var care=$('#careBox'); care.innerHTML='';
+  if(r.crisis){
+    care.innerHTML='<div class="care"><h3>Mabigat ang dala mo ngayon, at mahalaga ka.</h3><p>Pakiusap, makipag-usap ka sa totoong tao ngayon din. Libre at 24/7 ang NCMH Crisis Hotline. Sabihin mo rin sa pinakamalapit mong kaibigan o kapamilya.</p><a href="tel:1553">Tawagan ang 1553 (landline, toll-free)</a><a href="tel:+639190571553">Smart/TNT: 0919-057-1553</a><a href="tel:+639178998727">Globe/TM: 0917-899-8727</a><a href="tel:911">Emergency: 911</a></div>';
+  }
+  showVerse(r.verse);
+  showSong(r.theme);
+  go('result');
+};
+</script>
+</body>
+</html>
